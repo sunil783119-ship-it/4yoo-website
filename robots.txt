@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fouryoo-customer-website.onrender.com/sitemap.xml
