@@ -54,6 +54,7 @@ function showRolePortal(role){
  if(role==='shop_owner')initOwnerProductManagement();
  loadRoleOrders();
  loadRoleNotifications();
+ loadRoleFinance();
  if(roleNotificationTimer)clearInterval(roleNotificationTimer);
  roleNotificationTimer=setInterval(()=>{if(state.token&&activePortalRole!=='customer')loadRoleNotifications()},30000);
 }
@@ -112,6 +113,60 @@ async function roleAction(path,method='POST',body){
 }
 function roleCard(title,subtitle,body,buttons=''){
  return `<article class="role-order"><h3>${esc(title)}</h3><span class="status-pill">${esc(subtitle)}</span>${body}<div class="order-buttons">${buttons}</div></article>`;
+}
+
+
+function financePanel(){
+ const old=$('roleFinance');
+ if(old)return old;
+ const box=document.createElement('section');
+ box.id='roleFinance';
+ box.style.cssText='margin:16px 0;padding:16px;border:1px solid #e5e7eb;border-radius:14px;background:#fff';
+ const orders=$('roleOrders');
+ if(orders)orders.insertAdjacentElement('beforebegin',box);
+ return box;
+}
+async function loadRoleFinance(){
+ if(!state.token||activePortalRole==='customer')return;
+ const box=financePanel();
+ if(!box)return;
+ box.innerHTML='<p>Loading earnings…</p>';
+ try{
+  if(activePortalRole==='shop_owner'){
+   const [e,status]=await Promise.all([
+    api('/shop-owner/earnings'),
+    api('/shop-owner/shop-status')
+   ]);
+   box.innerHTML=`<h3>Shop Overview</h3>
+    <p><b>Total Earnings:</b> ${money(e.total_earnings)}</p>
+    <p><b>Pending Settlement:</b> ${money(e.pending_settlement)}</p>
+    <p><b>Settled:</b> ${money(e.settled_amount)}</p>
+    <p><b>Total Orders:</b> ${Number(e.total_orders||0)}</p>
+    <p>Shop status: <b>${status.is_open?'Open':'Closed'}</b></p>
+    <button class="btn btn-primary" id="shopStatusToggle">${status.is_open?'Close Shop':'Open Shop'}</button>
+    <h4>Recent Earnings</h4>
+    ${(e.earnings||[]).slice(0,10).map(x=>`<p>Order #${Number(x.sale_id)} · ${money(x.shop_owner_earning)} · ${String(x.status||'').replaceAll('_',' ')}</p>`).join('')||'<p>No earnings yet.</p>'}`;
+   $('shopStatusToggle').onclick=async()=>{
+    try{
+     await api('/shop-owner/shop-status',{method:'PATCH',body:JSON.stringify({is_open:!status.is_open})});
+     toast('Shop status updated');
+     loadRoleFinance();
+    }catch(err){toast(err.message)}
+   };
+  }else{
+   const e=await api('/delivery/earnings');
+   box.innerHTML=`<h3>Delivery Earnings</h3>
+    <p><b>Total Earnings:</b> ${money(e.total_earnings)}</p>
+    <p><b>Pending Settlement:</b> ${money(e.pending_settlement)}</p>
+    <p><b>Settled:</b> ${money(e.settled_amount)}</p>
+    <p><b>Total Deliveries:</b> ${Number(e.total_deliveries||0)}</p>
+    <h4>Recent Deliveries</h4>
+    ${(e.earnings||[]).slice(0,10).map(x=>`<p>${esc(x.invoice_number||('#'+x.sale_id))} · ${money(x.partner_earning)} · ${esc(x.status||'')}</p>`).join('')||'<p>No earnings yet.</p>'}`;
+  }
+ }catch(err){
+  box.innerHTML=`<p>Dashboard information unavailable: ${esc(err.message)}</p><button class="btn btn-light" id="financeRetry">Retry</button>`;
+  $('financeRetry').onclick=loadRoleFinance;
+ }
 }
 
 let roleNotificationTimer=null;
@@ -538,8 +593,42 @@ async function showProduct(id){
 }
 async function showOrders(highlightId){
  if(!requireLogin())return;
- try{const rows=await api('/sales');$('ordersList').innerHTML=Array.isArray(rows)&&rows.length?rows.map(o=>`<article class="order-card"><b>Order ${esc(o.invoice_number||('#'+o.id))}</b><p>Status: ${esc(o.delivery_status||o.shop_order_status||o.status||'pending')}</p><p>Total: ${money(o.total_amount)}</p>${Number(o.id)===Number(highlightId)?'<b class="stock">Just placed</b>':''}</article>`).join(''):'<p class="muted">No orders yet.</p>';openDialog('ordersDialog')}
- catch(e){toast(e.message)}
+ try{
+  const rows=await api('/sales');
+  $('ordersList').innerHTML=Array.isArray(rows)&&rows.length?rows.map(o=>{
+   const id=Number(o.id),delivered=String(o.delivery_status||'').toLowerCase()==='delivered';
+   const receipt=delivered&&!o.receipt_confirmed
+    ?`<button class="btn btn-primary" data-confirm-receipt="${id}">Confirm Receipt</button>`:'';
+   const rate=delivered
+    ?`<button class="btn btn-light" data-rate-order="${id}">Rate Shop</button>`:'';
+   return `<article class="order-card"><b>Order ${esc(o.invoice_number||('#'+id))}</b>
+    <p>Status: ${esc(o.delivery_status||o.shop_order_status||o.status||'pending')}</p>
+    <p>Total: ${money(o.total_amount)}</p>
+    ${o.receipt_confirmed?'<p>Receipt confirmed ✓</p>':''}
+    ${Number(o.id)===Number(highlightId)?'<b class="stock">Just placed</b>':''}
+    <div class="order-buttons">${receipt}${rate}</div></article>`;
+  }).join(''):'<p class="muted">No orders yet.</p>';
+  $('ordersList').querySelectorAll('[data-confirm-receipt]').forEach(b=>b.onclick=async()=>{
+   b.disabled=true;
+   try{
+    await api(`/customer/orders/${b.dataset.confirmReceipt}/confirm-receipt`,{method:'POST'});
+    toast('Receipt confirmed successfully');
+    await showOrders();
+   }catch(e){toast(e.message);b.disabled=false}
+  });
+  $('ordersList').querySelectorAll('[data-rate-order]').forEach(b=>b.onclick=async()=>{
+   const rating=Number(prompt('Rate this shop from 1 to 5:'));
+   if(!Number.isInteger(rating)||rating<1||rating>5){toast('Please enter a rating from 1 to 5');return}
+   const review=prompt('Write an optional review:')||'';
+   b.disabled=true;
+   try{
+    await api('/shop-ratings',{method:'POST',body:JSON.stringify({sale_id:Number(b.dataset.rateOrder),rating,review})});
+    toast('Thank you for your review');
+    b.remove();
+   }catch(e){toast(e.message);b.disabled=false}
+  });
+  openDialog('ordersDialog');
+ }catch(e){toast(e.message)}
 }
 function addAccountButton(){
  if(document.querySelector('[data-orders-button]'))return;
