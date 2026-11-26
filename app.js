@@ -495,7 +495,7 @@ async function loadAddresses(render=true){
  if(state.address&&!state.address.is_default){state.address=await api(`/customer-addresses/${state.address.id}/default`,{method:'PUT'});state.addresses=await api('/customer-addresses');}
  if(render)renderAddresses();
  updateLocation();
- await loadNearbyShops();
+ void loadNearbyShops();
 }
 function renderAddresses(){
  const box=$('savedAddresses');
@@ -532,8 +532,8 @@ function renderProducts(){
  const q=$('search').value.trim().toLowerCase();
  const rows=state.products.filter(p=>(state.category==='all'||p.category===state.category)&&`${p.name||''} ${p.description||''} ${p.category||''}`.toLowerCase().includes(q));
  $('productsGrid').innerHTML=rows.map(p=>{
-  const img=imageUrl(p.image_url),price=Number(p.selling_price||0),disc=Math.max(0,Math.min(100,Number(p.discount_percent||0))),final=price*(1-disc/100),stock=Number(p.stock_quantity||0);
-  return `<article class="product-card"><div class="product-image" data-detail="${Number(p.id)}">${img?`<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false">`:''}<span class="placeholder" ${img?'hidden':''}>🛍️</span>${disc?`<span class="discount-tag">${disc}% OFF</span>`:''}</div><div class="product-info"><h3>${esc(p.name)}</h3><p>${esc(p.category||p.description||'Local product')}</p>${p.offer_active&&p.offer_title?`<p class="offer">${esc(p.offer_title)}</p>`:''}<div class="price-line"><span class="price">${money(final)}</span>${disc?`<span class="old-price">${money(price)}</span>`:''}</div><span class="stock">${stock>0?stock+' available':'Out of stock'}</span><div class="product-actions"><button class="btn btn-primary add-btn" data-add="${Number(p.id)}" ${stock<=0?'disabled':''}>Add to cart</button><button class="wish-btn ${isWish(p.id)?'active':''}" data-wish="${Number(p.id)}" aria-label="Toggle wishlist">${isWish(p.id)?'♥':'♡'}</button></div></div></article>`;
+  const img=imageUrl(p.image_url),price=Number(p.selling_price||0),disc=Math.max(0,Math.min(100,Number(p.discount_percent||0))),original=disc>0?price/(1-disc/100):0,stock=Number(p.stock_quantity||0);
+  return `<article class="product-card"><div class="product-image" data-detail="${Number(p.id)}">${img?`<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false">`:''}<span class="placeholder" ${img?'hidden':''}>🛍️</span>${disc?`<span class="discount-tag">${disc}% OFF</span>`:''}</div><div class="product-info"><h3>${esc(p.name)}</h3><p>${esc(p.category||p.description||'Local product')}</p>${p.offer_active&&p.offer_title?`<p class="offer">${esc(p.offer_title)}</p>`:''}<div class="price-line"><span class="price">${money(price)}</span>${disc?`<span class="old-price">${money(original)}</span>`:''}</div><span class="stock">${stock>0?stock+' available':'Out of stock'}</span><div class="product-actions"><button class="btn btn-primary add-btn" data-add="${Number(p.id)}" ${stock<=0?'disabled':''}>Add to cart</button><button class="wish-btn ${isWish(p.id)?'active':''}" data-wish="${Number(p.id)}" aria-label="Toggle wishlist">${isWish(p.id)?'♥':'♡'}</button></div></div></article>`;
  }).join('');
  if(!rows.length&&state.products.length)$('productsGrid').innerHTML='<div class="notice">No products match your search.</div>';
  $('productsGrid').querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addToCart(Number(b.dataset.add)));
@@ -635,8 +635,18 @@ function addAccountButton(){
  const b=document.createElement('button');b.className='text-btn';b.textContent='My orders';b.dataset.ordersButton='1';b.onclick=()=>showOrders();$('loginOpen').before(b);
 }
 async function initCustomer(){
- try{await loadAddresses();if(state.address)await loadProducts();else{setNotice('Add a verified delivery address to see shops and products near you.');openDialog('addressDialog');renderAddresses()}await loadCart();try{state.wishlist=await api('/wishlist')}catch{state.wishlist=[]}renderProducts();addAccountButton()}
- catch(e){setNotice(e.message)}
+ try{
+  const cartTask=loadCart();
+  const wishlistTask=api('/wishlist').catch(()=>[]);
+  await loadAddresses();
+  if(state.address)await loadProducts();
+  else{setNotice('Add a verified delivery address to see shops and products near you.');openDialog('addressDialog');renderAddresses()}
+  const wishlistRows=await wishlistTask;
+  state.wishlist=Array.isArray(wishlistRows)?wishlistRows:[];
+  await cartTask;
+  renderProducts();
+  addAccountButton();
+ }catch(e){setNotice(e.message)}
 }
 async function init(){
  setAuthMode('login');

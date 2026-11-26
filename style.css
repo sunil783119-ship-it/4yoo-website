@@ -83,3 +83,118 @@
 .owner-product-actions .btn{font-size:12px;padding:8px 10px}
 .owner-active-offer{color:#218342!important;font-weight:700}
 @media(max-width:600px){.owner-product-fields{grid-template-columns:1fr}.owner-product-card{gap:10px;padding:11px}.owner-product-photo{width:76px;height:76px;flex-basis:76px}.owner-product-actions .btn{flex:1}}
+
+
+/* 4YOO UI POLISH - NOV 2026 */
+
+/* Better interaction and accessibility */
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(242,106,33,.35);
+  outline-offset: 3px;
+}
+
+/* Refined header */
+.topbar {
+  box-shadow: 0 3px 18px rgba(32,35,31,.035);
+}
+
+.brand img {
+  transition: transform .2s ease;
+}
+
+.brand:hover img {
+  transform: scale(1.05);
+}
+
+/* Refined homepage sections */
+.hero {
+  box-shadow: 0 12px 38px rgba(38,42,34,.045);
+}
+
+.service-strip {
+  box-shadow: 0 5px 20px rgba(38,42,34,.025);
+}
+
+.nearby-shop-card {
+  transition: transform .2s ease, box-shadow .2s ease,
+              border-color .2s ease;
+}
+
+.nearby-shop-card:hover {
+  transform: translateY(-3px);
+  border-color: #f4c5a5;
+  box-shadow: 0 14px 30px rgba(38,42,34,.08);
+}
+
+/* Better product discovery */
+.category {
+  transition: background .18s ease, color .18s ease,
+              border-color .18s ease;
+}
+
+.category:hover {
+  border-color: var(--orange);
+  color: var(--orange-dark);
+}
+
+.product-card {
+  box-shadow: 0 3px 14px rgba(38,42,34,.025);
+}
+
+.product-image img {
+  transition: transform .25s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.035);
+}
+
+/* Improved buttons */
+.btn, .cart-btn, .wish-btn {
+  transition: transform .18s ease, box-shadow .18s ease,
+              background .18s ease;
+}
+
+.btn:active, .cart-btn:active {
+  transform: scale(.98);
+}
+
+/* Mobile usability */
+@media(max-width:720px) {
+  .topbar {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .hero {
+    box-shadow: 0 8px 24px rgba(38,42,34,.04);
+  }
+
+  .section-title {
+    align-items: flex-start;
+  }
+
+  .nearby-shop-card {
+    padding: 15px;
+  }
+
+  .btn {
+    min-height: 42px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
