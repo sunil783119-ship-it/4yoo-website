@@ -496,6 +496,7 @@ async function loadAddresses(render=true){
  if(render)renderAddresses();
  updateLocation();
  void loadNearbyShops();
+ if(state.cart.length)await loadCartPricing();
 }
 function renderAddresses(){
  const box=$('savedAddresses');
@@ -541,15 +542,41 @@ function renderProducts(){
  $('productsGrid').querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>showProduct(Number(b.dataset.detail)));
 }
 $('search').addEventListener('input',renderProducts);
+let cartPricing=null,cartPricingError=null;
+async function loadCartPricing(){
+ cartPricing=null;cartPricingError=null;
+ if(!state.token||!state.cart.length||!state.address){renderCart();return}
+ const lat=Number(state.address.latitude),lon=Number(state.address.longitude);
+ if(!state.address.id||!Number.isFinite(lat)||!Number.isFinite(lon)){
+  cartPricingError='Please select a verified delivery address with GPS coordinates.';
+  renderCart();return;
+ }
+ try{
+  const q=new URLSearchParams({latitude:String(lat),longitude:String(lon),address_id:String(state.address.id)});
+  cartPricing=await api('/cart/pricing-preview?'+q.toString());
+ }catch(e){cartPricingError=e.message}
+ renderCart();
+}
 async function loadCart(){
- if(!state.token){state.cart=[];renderCart();return}
- try{const rows=await api('/cart');state.cart=Array.isArray(rows)?rows:[];renderCart()}catch(e){toast('Cart: '+e.message)}
+ if(!state.token){state.cart=[];cartPricing=null;cartPricingError=null;renderCart();return}
+ try{
+  const rows=await api('/cart');
+  state.cart=Array.isArray(rows)?rows:[];
+  await loadCartPricing();
+  renderCart();
+ }catch(e){toast('Cart: '+e.message)}
 }
 async function addToCart(id){if(!requireLogin())return;try{await api('/cart',{method:'POST',body:JSON.stringify({product_id:id,quantity:1})});await loadCart();toast('Added to cart')}catch(e){toast(e.message)}}
 function renderCart(){
  const count=state.cart.reduce((n,i)=>n+Number(i.quantity||0),0);$('cartCount').textContent=count;
  $('cartItems').innerHTML=state.cart.length?state.cart.map(i=>`<div class="cart-row"><div><b>${esc(i.product_name||'Product')}</b><span>${money(i.selling_price)} × ${Number(i.quantity)}</span></div><div class="qty-controls"><button data-dec="${Number(i.id)}" aria-label="Decrease">−</button><b>${Number(i.quantity)}</b><button data-inc="${Number(i.id)}" aria-label="Increase">+</button><button data-rem="${Number(i.id)}" aria-label="Remove">×</button></div></div>`).join(''):'<p class="muted">Your cart is empty. Add a nearby product to get started.</p>';
- $('cartTotal').textContent=money(state.cart.reduce((n,i)=>n+Number(i.subtotal||Number(i.selling_price||0)*Number(i.quantity||0)),0));
+ $('cartTotal').textContent=money(cartPricing?.subtotal??state.cart.reduce((n,i)=>n+Number(i.subtotal||Number(i.selling_price||0)*Number(i.quantity||0)),0));
+ $('deliveryFeeTotal').textContent=cartPricing?money(cartPricing.delivery_fee):'Unavailable';
+ $('platformFeeTotal').textContent=cartPricing?money(cartPricing.platform_fee):'—';
+ $('checkoutGrandTotal').textContent=cartPricing?money(cartPricing.total_amount):'Unavailable';
+ $('deliveryPricingNote').textContent=cartPricing?'Distance-based delivery pricing applied by 4YOO.':(cartPricingError||'Select a verified delivery address to calculate delivery charges.');
+ $('cashCheckout').disabled=!cartPricing;
+ $('onlineCheckout').disabled=!cartPricing;
  $('cartItems').querySelectorAll('[data-dec],[data-inc],[data-rem]').forEach(b=>b.onclick=async()=>{
   const id=Number(b.dataset.dec||b.dataset.inc||b.dataset.rem),item=state.cart.find(i=>Number(i.id)===id);if(!item)return;
   try{if(b.dataset.rem||Number(item.quantity)+(b.dataset.inc?1:-1)<1)await api('/cart/'+id,{method:'DELETE'});else await api('/cart/'+id,{method:'PUT',body:JSON.stringify({quantity:Number(item.quantity)+(b.dataset.inc?1:-1)})});await loadCart()}catch(e){setMessage('cartMessage',e.message)}
@@ -558,16 +585,23 @@ function renderCart(){
 $('cartOpen').onclick=async()=>{if(!requireLogin())return;setMessage('cartMessage','');await loadCart();openDialog('cartDialog')};
 async function cashCheckout(){
  if(!requireLogin())return;if(!state.address){setMessage('cartMessage','Please save/select a delivery address first.');return}if(!state.cart.length){setMessage('cartMessage','Your cart is empty.');return}
- setMessage('cartMessage','Placing your order…');
- try{const q=new URLSearchParams({payment_method:'cash',address_id:String(state.address.id)});const order=await api('/cart/checkout?'+q,{method:'POST'});await loadCart();await loadProducts();setMessage('cartMessage','');$('cartDialog').close();toast('Order placed successfully');await showOrders(order.id)}
+ setMessage('cartMessage','Checking distance and delivery charges…');
+ try{
+  await loadCartPricing();
+  if(!cartPricing)throw Error(cartPricingError||'Delivery pricing is unavailable.');
+  setMessage('cartMessage','Placing your order…');
+  const q=new URLSearchParams({payment_method:'cash',address_id:String(state.address.id)});const order=await api('/cart/checkout?'+q,{method:'POST'});await loadCart();await loadProducts();setMessage('cartMessage','');$('cartDialog').close();toast('Order placed successfully');await showOrders(order.id)}
  catch(e){setMessage('cartMessage',e.message)}
 }
 $('cashCheckout').onclick=cashCheckout;
 async function loadRazorpay(){if(window.Razorpay)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://checkout.razorpay.com/v1/checkout.js';s.onload=resolve;s.onerror=()=>reject(Error('Unable to load secure payment checkout.'));document.head.appendChild(s)})}
 $('onlineCheckout').onclick=async()=>{
  if(!requireLogin())return;if(!state.address){setMessage('cartMessage','Please save/select a delivery address first.');return}if(!state.cart.length){setMessage('cartMessage','Your cart is empty.');return}
- setMessage('cartMessage','Preparing secure Razorpay checkout…');
+ setMessage('cartMessage','Checking distance and delivery charges…');
  try{
+  await loadCartPricing();
+  if(!cartPricing)throw Error(cartPricingError||'Delivery pricing is unavailable.');
+  setMessage('cartMessage','Preparing secure Razorpay checkout…');
   await loadRazorpay();
   const q=new URLSearchParams({address_id:String(state.address.id)});
   const order=await api('/payment/create-order?'+q,{method:'POST',body:JSON.stringify({})});
@@ -644,6 +678,7 @@ async function initCustomer(){
   const wishlistRows=await wishlistTask;
   state.wishlist=Array.isArray(wishlistRows)?wishlistRows:[];
   await cartTask;
+  if(state.cart.length)await loadCartPricing();
   renderProducts();
   addAccountButton();
  }catch(e){setNotice(e.message)}
