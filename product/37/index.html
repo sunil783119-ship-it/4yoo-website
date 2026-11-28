@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href=\"/\">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f26a21">
+
+  <title>snacks | Buy Online on 4YOO</title>
+  <meta name="description" content="Buy snacks on 4YOO. Buy snacks on 4YOO. Shop online from Tech.">
+  <link rel="canonical" href="https://fouryoo-customer-website.onrender.com/product/37">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="snacks | Buy Online on 4YOO">
+  <meta property="og:description" content="Buy snacks on 4YOO. Buy snacks on 4YOO. Shop online from Tech.">
+  <meta property="og:url" content="https://fouryoo-customer-website.onrender.com/product/37">
+  <meta property="og:image" content="https://res.cloudinary.com/a91fxuk6/image/upload/v1794535593/4yoo/products/0fc28b97e10f4c54aaa0b768c647bb92.jpg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="4YOO – Everything Near You">
+  <meta name="twitter:description" content="Discover nearby shops and local products with 4YOO.">
+
+  <link rel="icon" href="assets/4yoo_logo.jpg">
+  <link rel="stylesheet" href="style.css">
+
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Product", "name": "snacks", "description": "Buy snacks on 4YOO.", "url": "https://fouryoo-customer-website.onrender.com/product/37", "image": ["https://res.cloudinary.com/a91fxuk6/image/upload/v1794535593/4yoo/products/0fc28b97e10f4c54aaa0b768c647bb92.jpg"], "offers": {"@type": "Offer", "priceCurrency": "INR", "price": "10.00", "availability": "https://schema.org/InStock", "url": "https://fouryoo-customer-website.onrender.com/product/37"}}</script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#" aria-label="4YOO home"><img src="assets/4yoo_logo.jpg" alt="4YOO logo"><span>4YOO</span></a>
+  <button class="location-pill" id="addressOpen"><span>📍</span><span><small>DELIVER TO</small><b id="locationText">Choose your location</b></span><span>⌄</span></button>
+  <label class="top-search"><span>⌕</span><input id="search" type="search" placeholder="Search products near you..." aria-label="Search products"></label>
+  <nav class="top-actions">
+    <button class="text-btn" id="loginOpen">Login</button>
+    <button class="cart-btn" id="cartOpen">🛒 <span>Cart</span><b id="cartCount">0</b></button>
+  </nav>
+</header>
+
+<main id="seoPrerenderContent" style="max-width:1100px;margin:35px auto;padding:20px;min-height:65vh"><p><a href="/">4YOO Home</a></p><h1>snacks</h1><img src="https://res.cloudinary.com/a91fxuk6/image/upload/v1794535593/4yoo/products/0fc28b97e10f4c54aaa0b768c647bb92.jpg" alt="snacks" style="max-width:360px;width:100%;height:300px;object-fit:contain"><p>Buy snacks on 4YOO.</p><p>Category: Snacks</p><p><strong>₹10.00</strong></p><p>In stock</p><p>Shop: <a href="/shop/5">Tech</a></p></main>
+
+
+<section id="rolePortal" class="role-portal wrap" hidden>
+  <div class="role-head">
+    <div><span class="eyebrow">4YOO WORKSPACE</span><h2 id="roleTitle">Your dashboard</h2><p id="roleSubtitle">Manage your 4YOO activity.</p></div>
+    <div class="role-actions"><select id="activeRole" aria-label="Switch account role"></select><button class="btn btn-outline" id="roleRefresh">Refresh</button><button class="btn btn-light" id="roleHome">Customer Store</button></div>
+  </div>
+  <div id="roleNotice" class="notice" role="status"></div>
+  <section class="role-notifications">
+    <div class="role-notification-heading">
+      <h3>Notifications <span id="roleUnreadCount">0</span></h3>
+      <button class="btn btn-light" id="roleReadAll" type="button">Mark all read</button>
+      <button class="btn btn-light" id="roleRefreshNotifications" type="button">Refresh</button>
+    </div>
+    <div id="roleNotifications" class="role-notification-list"></div>
+  </section>
+
+  <div id="roleOrders" class="role-orders"></div>
+  <section id="ownerProducts" class="owner-products" hidden>
+    <div class="owner-products-head">
+      <div><span class="eyebrow">SHOP INVENTORY</span><h2>My Products</h2><p>Add products, update prices, stock and offers.</p></div>
+      <button class="btn btn-primary" id="showProductForm" type="button">+ Add Product</button>
+    </div>
+    <form id="ownerProductForm" class="owner-product-form" hidden>
+      <h3 id="ownerProductFormTitle">Add New Product</h3>
+      <input type="hidden" name="product_id">
+      <div class="owner-product-fields">
+        <label>Product Name *<input name="name" maxlength="150" required></label>
+        <label>Category *<input name="category" maxlength="80" required placeholder="Groceries, Food, etc."></label>
+        <label>SKU<input name="sku" maxlength="100"></label>
+        <label>Selling Price (₹) *<input name="selling_price" type="number" min="0.01" step="0.01" required></label>
+        <label>Cost Price (₹) *<input name="cost_price" type="number" min="0" step="0.01" required></label>
+        <label>Stock Quantity *<input name="stock_quantity" type="number" min="0" step="1" required></label>
+        <label>Discount (%)<input name="discount_percent" type="number" min="0" max="100" step="0.01" value="0"></label>
+        <label>Product Photo<input name="product_image" type="file" accept="image/*"></label>
+        <label class="owner-product-wide">Description<textarea name="description" maxlength="2000" rows="3"></textarea></label>
+        <label>Offer Title<input name="offer_title" maxlength="150"></label>
+        <label>Offer Description<input name="offer_description" maxlength="2000"></label>
+        <label class="owner-product-check"><input name="offer_active" type="checkbox"> Activate offer</label>
+      </div>
+      <div class="owner-product-form-actions">
+        <button class="btn btn-light" type="button" id="cancelProductForm">Cancel</button>
+        <button class="btn btn-primary" type="submit" id="saveOwnerProduct">Save Product</button>
+      </div>
+      <p id="ownerProductMessage" class="form-message"></p>
+    </form>
+    <div id="ownerProductsNotice" class="notice">Loading your products…</div>
+    <div id="ownerProductsGrid" class="owner-products-grid"></div>
+  </section>
+
+</section>
+
+<footer class="footer"><div class="footer-main"><a class="brand footer-brand" href="#"><img src="assets/4yoo_logo.jpg" alt=""><span>4YOO</span></a><p>Everything Near You</p><div class="footer-links"><a href="#products">Shop</a><button id="policyOpen">Refund & cancellation</button><a href="mailto:support@4yoo.in">Contact support</a></div></div><small>© 2026 4YOO. All rights reserved.</small></footer>
+
+<dialog id="loginDialog" class="dialog">
+  <form id="loginForm" class="dialog-card">
+    <button type="button" class="dialog-close" data-close>×</button><div class="dialog-brand"><img src="assets/4yoo_logo.jpg" alt=""><div><b>Welcome to 4YOO</b><small>Sign in to shop nearby</small></div></div>
+    <div class="auth-tabs"><button type="button" class="tab active" data-auth="login">Sign in</button><button type="button" class="tab" data-auth="register">Create account</button></div>
+    <div id="emailLoginFields"><label>Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label><label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label><button class="btn btn-primary full" type="submit">Sign in</button></div>
+    <div id="registerFields" hidden><label>Email address<input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Phone number<input id="regPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number"></label><label>Create password<input id="regPassword" type="password" minlength="6" placeholder="At least 6 characters"></label><label>OTP<input id="regOtp" inputmode="numeric" maxlength="6" placeholder="6-digit OTP"></label><button type="button" class="btn btn-light full" id="sendRegOtp">Send registration OTP</button><button type="button" class="btn btn-primary full" id="finishRegister">Create customer account</button></div>
+    <div class="divider"><span>OR</span></div>
+    <div id="otpFields"><label>Phone number<input id="otpPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="Registered 10-digit mobile number"></label><label>OTP<input id="otpCode" inputmode="numeric" maxlength="6" placeholder="Enter OTP"></label><button type="button" class="btn btn-light full" id="sendOtp">Send login OTP</button><button type="button" class="btn btn-primary full" id="verifyOtp">Verify & sign in</button></div>
+    <p class="form-message" id="loginMessage" role="status"></p>
+    <p class="fine-print">By continuing, you agree to use 4YOO in accordance with its terms and policies.</p>
+  </form>
+</dialog>
+
+<dialog id="addressDialog" class="dialog">
+  <div class="dialog-card"><button type="button" class="dialog-close" data-close>×</button><h2>Delivery location</h2><p class="muted">Your saved address decides which nearby shops and products are available.</p>
+    <div id="savedAddresses" class="saved-addresses"></div>
+    <div class="form-divider"><span>Add a delivery address</span></div>
+    <form id="addressForm"><label>Address label<input name="label" maxlength="30" placeholder="Home / Work" required></label><label>Full address<textarea name="address" maxlength="500" placeholder="Door no, street, area, city, state - 6 digit pincode" required></textarea></label><button type="button" class="btn btn-light full" id="gpsButton">📍 Use my current GPS location</button><div class="two-fields"><label>Latitude<input name="latitude" type="number" step="any" required></label><label>Longitude<input name="longitude" type="number" step="any" required></label></div><button class="btn btn-primary full" type="submit">Save delivery address</button><p id="addressMessage" class="form-message"></p></form>
+  </div>
+</dialog>
+
+<dialog id="cartDialog" class="dialog">
+  <div class="dialog-card cart-dialog"><button type="button" class="dialog-close" data-close>×</button><h2>Your cart</h2><div id="cartItems"></div><div class="cart-summary"><span>Items subtotal</span><b id="cartTotal">₹0.00</b></div><div class="cart-summary"><span>Platform Fee</span><b id="platformFeeTotal">—</b></div><div class="cart-summary"><span>Delivery Fee (KM based)</span><b id="deliveryFeeTotal">—</b></div><div class="cart-summary"><strong>Total Amount</strong><strong id="checkoutGrandTotal">—</strong></div><p class="muted tiny" id="deliveryPricingNote">Select a verified delivery address to calculate delivery charges.</p><div class="checkout-actions"><button class="btn btn-light" id="cashCheckout">Cash on delivery</button><button class="btn btn-primary" id="onlineCheckout">Pay online</button></div><p id="cartMessage" class="form-message"></p></div>
+</dialog>
+
+<dialog id="productDialog" class="dialog"><div class="dialog-card"><button type="button" class="dialog-close" data-close>×</button><div id="productDetail"></div></div></dialog>
+<dialog id="ordersDialog" class="dialog"><div class="dialog-card"><button type="button" class="dialog-close" data-close>×</button><h2>My orders</h2><div id="ordersList"></div></div></dialog>
+<dialog id="policyDialog" class="dialog"><div class="dialog-card"><button type="button" class="dialog-close" data-close>×</button><h2>Refund & cancellation</h2><p>Cancellation may be available before the shop starts preparing an order. Once preparation or dispatch begins, cancellation may not be possible.</p><p>For failed or duplicate payments, or missing, damaged or incorrect items, contact 4YOO support. Approved refunds are processed through the applicable payment method or provider.</p><p>Support: <a href="mailto:support@4yoo.in">support@4yoo.in</a></p></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+  // Same MSG91 widget credentials used by the existing 4YOO Flutter app.
+  // MSG91's Web SDK requires the widget to have Web integration enabled.
+  window.init4YooMSG91 = function () {
+    if (typeof window.initSendOTP !== 'function') return;
+    window.initSendOTP({
+      widgetId: '366b78645754353433353737',
+      tokenAuth: '569602TIzZwUYOK6aa26a11P1',
+      exposeMethods: true,
+      success: function (data) { console.log('MSG91 widget verification callback received.'); },
+      failure: function (error) { console.error('MSG91 widget error:', error); }
+    });
+  };
+</script>
+<script src="https://verify.msg91.com/otp-provider.js" onload="window.init4YooMSG91()"></script>
+<script src="app.js"></script>
+</body></html>
