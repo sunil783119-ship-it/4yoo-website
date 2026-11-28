@@ -697,5 +697,141 @@ async function init(){
   }
  }else{setNotice('Sign in and choose your delivery location to discover products.');renderCart()}
 }
+
+/* SEO_PUBLIC_PAGES: public product/shop/category landing pages */
+(async function render4YooSeoPage(){
+  const path = decodeURIComponent(location.pathname);
+  const match = path.match(/^\/(product|shop|category)\/([^/]+)\/?$/i);
+  if (!match) return;
+
+  const kind = match[1].toLowerCase();
+  const value = match[2];
+  const apiRoot = 'https://fouryoo.onrender.com/api/seo';
+  const siteRoot = 'https://fouryoo-customer-website.onrender.com';
+  const escSeo = v => String(v ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+  const moneySeo = n => '₹' + Number(n || 0).toFixed(2);
+  const imageSeo = v => !v ? '' : (/^https?:\/\//i.test(v) ? v : 'https://fouryoo.onrender.com' + (String(v).startsWith('/') ? '' : '/') + v);
+
+  document.querySelectorAll('main, #rolePortal').forEach(el => el.hidden = true);
+  const page = document.createElement('main');
+  page.id = 'seoLandingPage';
+  page.style.cssText = 'max-width:1100px;margin:35px auto;padding:20px;font-family:Arial,sans-serif;color:#222;min-height:65vh';
+  document.body.insertBefore(page, document.body.firstChild);
+
+  function setSeo(title, description, canonical, image, type='website', jsonld=null) {
+    document.title = title;
+    const setMeta = (selector, attr, value) => {
+      let el = document.head.querySelector(selector);
+      if (!el) { el = document.createElement('meta'); document.head.appendChild(el); }
+      el.setAttribute(attr, value);
+    };
+    setMeta('meta[name="description"]','content',description);
+    setMeta('meta[property="og:title"]','content',title);
+    setMeta('meta[property="og:description"]','content',description);
+    setMeta('meta[property="og:url"]','content',canonical);
+    setMeta('meta[property="og:type"]','content',type);
+    if (image) setMeta('meta[property="og:image"]','content',image);
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) { link=document.createElement('link'); link.rel='canonical'; document.head.appendChild(link); }
+    link.href=canonical;
+    if (jsonld) {
+      const old=document.getElementById('seo-jsonld');
+      if(old) old.remove();
+      const script=document.createElement('script');
+      script.id='seo-jsonld'; script.type='application/ld+json';
+      script.textContent=JSON.stringify(jsonld);
+      document.head.appendChild(script);
+    }
+  }
+
+  function productCard(p) {
+    const img=imageSeo(p.image_url);
+    return `<article style="border:1px solid #eee;border-radius:12px;padding:14px;margin:10px 0;display:flex;gap:15px;align-items:center">
+      ${img?`<img src="${escSeo(img)}" alt="${escSeo(p.name)}" style="width:110px;height:110px;object-fit:contain">`:''}
+      <div><h2 style="margin:0 0 8px">${escSeo(p.name)}</h2>
+      <p>${escSeo(p.category||'Local product')}</p>
+      <strong>${moneySeo(p.selling_price)}</strong>
+      ${Number(p.discount_percent)>0?`<span> (${Number(p.discount_percent)}% off)</span>`:''}
+      <p><a href="/product/${Number(p.id)}">View product</a></p></div></article>`;
+  }
+
+  try {
+    if (kind === 'product') {
+      if (!/^\d+$/.test(value)) throw new Error('Invalid product URL');
+      const response=await fetch(`${apiRoot}/products/${value}`);
+      if(!response.ok) throw new Error('Product not found');
+      const p=await response.json();
+      const title=`${p.name} | Buy Online on 4YOO`;
+      const desc=(p.description||`${p.name} available from a nearby approved shop on 4YOO.`).slice(0,155);
+      const canonical=`${siteRoot}/product/${p.id}`;
+      const img=imageSeo(p.image_url);
+      setSeo(title,desc,canonical,img,'product',{
+        '@context':'https://schema.org','@type':'Product','name':p.name,
+        'description':p.description||desc,'image':img?[img]:undefined,
+        'category':p.category,'offers':{
+          '@type':'Offer','price':Number(p.selling_price||0).toFixed(2),
+          'priceCurrency':'INR',
+          'availability':Number(p.stock_quantity)>0?'https://schema.org/InStock':'https://schema.org/OutOfStock',
+          'url':canonical
+        }
+      });
+      page.innerHTML=`<p><a href="/">4YOO Home</a> › Product</p>
+        <h1>${escSeo(p.name)}</h1>
+        ${img?`<img src="${escSeo(img)}" alt="${escSeo(p.name)}" style="max-width:360px;width:100%;height:300px;object-fit:contain">`:''}
+        <p>${escSeo(p.description||'')}</p><p>Category: ${escSeo(p.category||'General')}</p>
+        <h2>${moneySeo(p.selling_price)}</h2>
+        ${Number(p.discount_percent)>0?`<p>${Number(p.discount_percent)}% discount</p>`:''}
+        <p>${Number(p.stock_quantity)>0?'Available':'Currently out of stock'}</p>
+        <p>Shop: <a href="/shop/${Number(p.shop_id)}">${escSeo(p.shop_name)}</a>${p.city?' · '+escSeo(p.city):''}</p>
+        <p><a href="/">Explore more on 4YOO</a></p>`;
+    } else if (kind === 'shop') {
+      if (!/^\d+$/.test(value)) throw new Error('Invalid shop URL');
+      const response=await fetch(`${apiRoot}/shops/${value}`);
+      if(!response.ok) throw new Error('Shop not found');
+      const data=await response.json(), s=data.shop, products=data.products||[];
+      const title=`${s.shop_name} | Nearby Store on 4YOO`;
+      const desc=`Explore products from ${s.shop_name}${s.city?', '+s.city:''} on 4YOO.`;
+      const canonical=`${siteRoot}/shop/${s.id}`;
+      setSeo(title,desc,canonical,null,'website',{
+        '@context':'https://schema.org','@type':'LocalBusiness','name':s.shop_name,
+        'address':s.city?{'@type':'PostalAddress','addressLocality':s.city,'addressCountry':'IN'}:undefined,
+        'url':canonical
+      });
+      page.innerHTML=`<p><a href="/">4YOO Home</a> › Shop</p><h1>${escSeo(s.shop_name)}</h1>
+        <p>${escSeo(s.city||'')}</p><h2>Products from this shop</h2>
+        ${products.length?products.map(productCard).join(''):'<p>No products are currently listed.</p>'}`;
+    } else {
+      const response=await fetch(`${apiRoot}/categories`);
+      if(!response.ok) throw new Error('Category list unavailable');
+      const data=await response.json();
+      const category=data.categories.find(c=>String(c).toLowerCase()===value.toLowerCase());
+      if(!category) throw new Error('Category not found');
+      const title=`${category} Products | 4YOO`;
+      const desc=`Browse ${category} products from approved local shops on 4YOO.`;
+      const canonical=`${siteRoot}/category/${encodeURIComponent(category)}`;
+      setSeo(title,desc,canonical);
+      const productsResponse=await fetch(`${apiRoot}/categories/${encodeURIComponent(category)}/products`);
+      if(!productsResponse.ok) throw new Error('Category products unavailable');
+      const productsData=await productsResponse.json();
+      const products=productsData.products||[];
+      setSeo(title,desc,canonical,null,'website',{
+        '@context':'https://schema.org','@type':'CollectionPage',
+        'name':title,'description':desc,'url':canonical
+      });
+      page.innerHTML=`<p><a href="/">4YOO Home</a> › Category</p>
+        <h1>${escSeo(category)} Products</h1>
+        <p>Discover ${escSeo(category)} from approved local shops.</p>
+        <h2>${products.length} Products</h2>
+        ${products.length?products.map(productCard).join(''):'<p>No products are currently listed in this category.</p>'}
+        <p><a href="/">Browse the 4YOO marketplace</a></p>`;
+    }
+  } catch(error) {
+    document.title='Page unavailable | 4YOO';
+    page.innerHTML=`<h1>Page unavailable</h1><p>${escSeo(error.message)}</p><p><a href="/">Return to 4YOO</a></p>`;
+  }
+})();
+
 init();
 })();
