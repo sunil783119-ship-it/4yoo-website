@@ -414,7 +414,13 @@ $('verifyOtp').onclick=async()=>{
    setMessage('loginMessage','OTP verified. Signing in…');
    const result=await api('/auth/msg91/login',{method:'POST',body:JSON.stringify({phone_number:phone,access_token:accessToken,requested_role:'customer'})});
    if(result.registration_required){
-    setMessage('loginMessage','This number is not registered as a 4YOO customer yet. Please create an account first.');
+    window.fouryooRegistrationTicket = result.access_token;
+    $('regPhone').value = phone;
+    $('regName').value = '';
+    $('regEmail').value = '';
+    $('regPassword').value = '';
+    setAuthMode('register');
+    setMessage('loginMessage','OTP verified. Complete your name, email and password to create your customer account.');
     return;
    }
    loginSuccess(result);
@@ -432,11 +438,21 @@ $('sendRegOtp').onclick=async()=>{
  catch(e){setMessage('loginMessage',e.message)}
 };
 $('finishRegister').onclick=async()=>{
- const email=$('regEmail').value.trim(),phone=$('regPhone').value.trim(),password=$('regPassword').value,otp=$('regOtp').value.trim();
- if(!email||!/^\d{10}$/.test(phone)||password.length<6||!/^\d{6}$/.test(otp)){setMessage('loginMessage','Enter valid email, 10-digit phone, password (6+ characters) and 6-digit OTP.');return}
+ const email=$('regEmail').value.trim(),phone=$('regPhone').value.trim(),password=$('regPassword').value,name=$('regName').value.trim(),otp=$('regOtp').value.trim();
+ if(!email||!/^\d{10}$/.test(phone)||password.length<8||name.length<2){setMessage('loginMessage','Enter your name, valid email, 10-digit phone and password (at least 8 characters).');return}
  setMessage('loginMessage','Creating customer account…');
- try{const r=await api('/auth/otp/register',{method:'POST',body:JSON.stringify({phone_number:phone,otp,email,password,role:'customer'})});if(r.access_token)loginSuccess(r);else{setAuthMode('login');$('otpPhone').value=phone;setMessage('loginMessage','Account created. Please sign in with your phone OTP or email/password.')}}
- catch(e){setMessage('loginMessage',e.message)}
+ try{
+  let r;
+  if(window.fouryooRegistrationTicket){
+   r=await api('/auth/msg91/register',{method:'POST',body:JSON.stringify({phone_number:phone,access_token:window.fouryooRegistrationTicket,name,password,email})});
+   window.fouryooRegistrationTicket='';
+  }else{
+   if(!/^\d{6}$/.test(otp)){setMessage('loginMessage','Enter the registration OTP.');return}
+   r=await api('/auth/otp/register',{method:'POST',body:JSON.stringify({phone_number:phone,otp,email,password,role:'customer'})});
+  }
+  if(r.access_token)loginSuccess(r);
+  else setMessage('loginMessage','Account created. Please sign in.');
+ }catch(e){setMessage('loginMessage',e.message)}
 };
 function logout(){document.querySelector('main').hidden=false;document.querySelector('.footer').hidden=false;$('rolePortal').hidden=true;state.token='';state.user=null;state.address=null;state.addresses=[];state.products=[];state.cart=[];state.wishlist=[];localStorage.removeItem('4yoo_token');$('loginOpen').textContent='Login';$('locationText').textContent='Choose your location';renderProducts();renderCart();setNotice('Sign in and choose your delivery location to discover products.');toast('You are signed out.')}
 function setNotice(message){$('notice').textContent=message;$('notice').hidden=!message}
@@ -504,10 +520,44 @@ function renderAddresses(){
  box.innerHTML=state.addresses.map(a=>`<div class="saved-address ${state.address&&Number(state.address.id)===Number(a.id)?'active':''}"><input type="radio" name="savedAddress" value="${Number(a.id)}" ${state.address&&Number(state.address.id)===Number(a.id)?'checked':''}><label><b>${esc(a.label||'Delivery address')} ${a.is_default?'· Default':''}</b><small>${esc(a.address)}${a.city?' · '+esc(a.city):''}${a.pincode?' - '+esc(a.pincode):''}</small></label></div>`).join('');
  box.querySelectorAll('input[name=savedAddress]').forEach(input=>input.onchange=async()=>{try{const id=Number(input.value);state.address=await api(`/customer-addresses/${id}/default`,{method:'PUT'});await loadAddresses();await loadProducts();toast('Delivery address updated');$('addressDialog').close()}catch(e){toast(e.message)}});
 }
+async function fouryooReverseGeocode(lat,lon){
+ const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon);
+ const response=await fetch(url,{headers:{'Accept':'application/json'}});
+ if(!response.ok)throw Error('Could not retrieve address for this location.');
+ const data=await response.json(),a=data.address||{};
+ const city=a.city||a.town||a.village||a.municipality||a.city_district||'';
+ const stateName=a.state||'';
+ const pin=a.postcode||'';
+ const street=[a.house_number,a.road||a.residential||a.pedestrian].filter(Boolean).join(' ');
+ const area=a.suburb||a.neighbourhood||a.quarter||a.hamlet||'';
+ if(!city||!stateName||!/^\d{6}$/.test(pin))throw Error('Address details or 6-digit pincode were not found. Please enter the full address manually.');
+ return [street,area,city,stateName,pin].filter(Boolean).join(', ');
+}
 $('gpsButton').onclick=()=>{
  if(!navigator.geolocation){setMessage('addressMessage','GPS is not supported by this browser.');return}
- setMessage('addressMessage','Getting your GPS location…');
- navigator.geolocation.getCurrentPosition(p=>{$('addressForm').elements.latitude.value=p.coords.latitude;$('addressForm').elements.longitude.value=p.coords.longitude;setMessage('addressMessage','GPS captured. Enter the complete address including city, state and 6-digit pincode.')},e=>setMessage('addressMessage','GPS error: '+e.message),{enableHighAccuracy:true,timeout:15000});
+ setMessage('addressMessage','Getting GPS and detecting your address…');
+ navigator.geolocation.getCurrentPosition(async p=>{
+  const f=$('addressForm').elements;
+  f.latitude.value=p.coords.latitude;f.longitude.value=p.coords.longitude;
+  try{f.address.value=await fouryooReverseGeocode(p.coords.latitude,p.coords.longitude);setMessage('addressMessage','Current location detected. Check the address and save it.')}
+  catch(e){setMessage('addressMessage',e.message+' GPS coordinates are captured; edit the address before saving.')}
+ },e=>setMessage('addressMessage','GPS error: '+e.message+'. You can enter your address manually.'),{enableHighAccuracy:true,timeout:20000,maximumAge:60000});
+};
+window.fouryooManualGeocode=async function(){
+ const f=$('addressForm').elements,query=String(f.address.value||'').trim();
+ if(query.length<5){setMessage('addressMessage','Enter your full address first.');return}
+ setMessage('addressMessage','Finding coordinates for your address…');
+ try{
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=in&q='+encodeURIComponent(query);
+  const response=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!response.ok)throw Error('Address search is temporarily unavailable.');
+  const rows=await response.json();
+  if(!rows.length)throw Error('Address not found. Add area, city, state and pincode.');
+  const item=rows[0],a=item.address||{};
+  if(!/^\d{6}$/.test(a.postcode||''))throw Error('Please include a valid 6-digit pincode in the address.');
+  f.latitude.value=Number(item.lat);f.longitude.value=Number(item.lon);
+  setMessage('addressMessage','Location found. Verify the address and save it.');
+ }catch(e){setMessage('addressMessage',e.message)}
 };
 $('addressForm').addEventListener('submit',async e=>{
  e.preventDefault();if(!requireLogin())return;
